@@ -46,17 +46,26 @@ class MatchesPageState extends State<MatchesPage> {
           return _buildError(snapshot.error.toString());
         }
         final matches = snapshot.data ?? [];
-        if (matches.isEmpty) {
-          return const Center(child: Text('暂无匹配结果，发布物品后会在这里看到配对'));
+        // 双方都已确认的配对视为"已完成"，从列表隐藏
+        final active = matches.where((m) => !m.isResolved).toList();
+        if (active.isEmpty) {
+          return Center(
+            child: Text(
+              matches.isEmpty
+                  ? '暂无匹配结果，发布物品后会在这里看到配对'
+                  : '所有匹配都已完成 🎉',
+              style: const TextStyle(fontSize: 15),
+            ),
+          );
         }
         return RefreshIndicator(
           onRefresh: () async => _reload(),
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(12),
-            itemCount: matches.length,
+            itemCount: active.length,
             itemBuilder: (context, index) {
-              final match = matches[index];
+              final match = active[index];
               return _buildMatchCard(match);
             },
           ),

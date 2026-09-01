@@ -59,6 +59,10 @@ class MatchModel {
     return false;
   }
 
+  /// 双方是否都已确认（lost 和 found 物品状态均为 1=已匹配）。
+  /// 已完成的匹配从匹配列表隐藏，仅在双方确认后生效。
+  bool get isResolved => lostItem.status == 1 && foundItem.status == 1;
+
   /// 相似度百分比显示，如 85%。
   String get similarityPercent => '${(similarity * 100).round()}%';
 
