@@ -110,6 +110,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ## 常见问题
 
 - **登录/注册报错**：检查 `.env` 的 SUPABASE_URL / SUPABASE_ANON_KEY 是否填对，Auth 是否启用 Email 提供商
+- **图片上传失败（403 "new row violates row level security policy"）**：桶已创建但 `storage.objects` 缺 RLS 策略，在 SQL Editor 执行一次 `backend/storage_policies.sql`
 - **图片上传失败**：确认 Supabase Storage 已创建 **public** 桶 `images`
 - **列表加载失败"无法连接服务器"**：后端未启动，或 Android 真机需把 `API_BASE_URL` 改为电脑局域网 IP；模拟器用 `10.0.2.2` 指向宿主机
 - **AI 识别提示失败**：后端 `/vision` 尚未实现，属预期降级行为，可手动选择品类/颜色
