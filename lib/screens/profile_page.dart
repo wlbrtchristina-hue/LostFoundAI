@@ -45,6 +45,44 @@ class _ProfilePageState extends State<ProfilePage>
     });
   }
 
+  Future<void> _confirmDelete(ItemModel item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('删除${item.typeLabel}'),
+        content: const Text('删除后不可恢复，相关的匹配记录也会一并删除。确定删除吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ApiService.instance.deleteItem(item.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已删除'), backgroundColor: Colors.green),
+      );
+      _reload();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('删除失败：${e.message}'), backgroundColor: Colors.red.shade400),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -145,7 +183,11 @@ class _ProfilePageState extends State<ProfilePage>
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
-              return ItemCard(item: item, showStatus: true);
+              return ItemCard(
+                item: item,
+                showStatus: true,
+                onDelete: () => _confirmDelete(item),
+              );
             },
           ),
         );

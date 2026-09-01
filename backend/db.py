@@ -70,6 +70,15 @@ class DB:
         resp.raise_for_status()
         return resp.json()[0]
 
+    def delete_item(self, item_id: str) -> bool:
+        """删除物品，返回是否真的删掉了（False=不存在）。关联 matches 由外键级联删除。"""
+        resp = self._client.delete(
+            f"/items?id=eq.{item_id}",
+            headers={"Prefer": "return=representation"},
+        )
+        resp.raise_for_status()
+        return len(resp.json()) > 0
+
     # ---------- matches ----------
 
     def insert_match(self, lost_item_id: str, found_item_id: str, similarity: float) -> None:

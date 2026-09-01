@@ -12,6 +12,7 @@ class ItemCard extends StatelessWidget {
     required this.item,
     this.onTap,
     this.showStatus = false,
+    this.onDelete,
   });
 
   final ItemModel item;
@@ -21,6 +22,9 @@ class ItemCard extends StatelessWidget {
 
   /// 是否在右上角显示状态标签（待匹配/已匹配），"我的页"使用
   final bool showStatus;
+
+  /// 删除回调（非 null 时卡片右上角显示删除按钮），"我的页"使用
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +80,17 @@ class ItemCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (onDelete != null)
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          tooltip: '删除',
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.delete_outline, size: 20),
+                          color: Colors.grey,
+                          onPressed: onDelete,
+                        ),
+                      ),
                     Row(
                       children: [
                         Container(

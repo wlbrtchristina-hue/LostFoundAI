@@ -168,6 +168,11 @@ class ApiService {
     return ItemModel.fromJson(_pickMap(data, ['item', 'data']) ?? {});
   }
 
+  /// 删除自己发布的物品（后端级联删除相关匹配记录）。
+  Future<void> deleteItem(String itemId) async {
+    await _request(() => _dio.delete('/items/$itemId'));
+  }
+
   /// 图像识别：返回全字段 [VisionResult]（后端 /vision 接口，可能未就绪）。
   Future<VisionResult> visionRecognize(String imageUrl) async {
     final data = await _request(

@@ -157,6 +157,17 @@ def list_items(
     return {"items": [item_to_dict(r) for r in rows]}
 
 
+@app.delete("/items/{item_id}")
+def delete_item(item_id: str, user_id: str = Depends(get_current_user)):
+    item = db.get_item(item_id)
+    if not item:
+        raise HTTPException(404, "物品不存在")
+    if str(item["user_id"]) != user_id:
+        raise HTTPException(403, "只能删除自己发布的物品")
+    db.delete_item(item_id)  # 关联 matches 由外键级联删除（见 schema.sql）
+    return {"deleted": True}
+
+
 @app.patch("/items/{item_id}/status")
 def update_item_status(item_id: str, body: StatusIn,
                        user_id: str = Depends(get_current_user)):
