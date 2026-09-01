@@ -48,15 +48,39 @@ lib/
 │   └── time_ago.dart             # 中文相对时间
 ├── screens/
 │   ├── auth/                     # 登录 / 注册
-│   ├── home_page.dart            # 底部 4 Tab 框架
+│   ├── home_page.dart            # 底部 4 Tab 框架（切 tab 自动刷新）
 │   ├── publish_page.dart         # 发布（拍照上传 + AI 识别 + 提交）
-│   ├── browse_page.dart          # 浏览信息流 + 筛选
+│   ├── browse_page.dart          # 浏览信息流 + 类型/品类筛选
 │   ├── item_detail_page.dart     # 物品详情
-│   ├── matches_page.dart         # 匹配列表（未读高亮）
-│   ├── match_detail_page.dart    # 匹配详情 + 确认归还
-│   └── profile_page.dart         # 我的（发布历史 + 状态）
+│   ├── matches_page.dart         # 匹配列表（未读高亮 + 全部/未确认/已完成筛选）
+│   ├── match_detail_page.dart    # 匹配详情 + 联系对方 + 确认归还
+│   ├── chat_page.dart            # 站内聊天（Supabase Realtime）
+│   └── profile_page.dart         # 我的（发布历史 + 状态筛选 + 删除）
 └── widgets/item_card.dart        # 物品卡片（复用）
+
+backend/
+├── main.py                       # FastAPI 入口（7 个接口 + JWT 鉴权）
+├── db.py                         # PostgREST 数据层（service_role）
+├── auth.py                       # Supabase JWT 验签（JWKS 按 kid 匹配）
+├── vision.py                     # DeepSeek 视觉识别（/vision）
+├── matching.py                   # 规则匹配打分
+└── schema.sql / storage_policies.sql / chat_schema.sql  # Supabase 建表脚本
 ```
+
+## 已实现功能
+
+- **发布**：拍照/选图 → 上传 Supabase Storage → AI 一键识别全字段（品类/颜色/数量/品牌/材质/特殊标记/描述，可编辑校对）→ 发布即自动匹配
+- **浏览**：信息流 + 类型/品类筛选，发布成功后自动跳转并刷新
+- **匹配**：规则打分（≥0.5 建记录），列表支持 全部/未确认/已完成 筛选；**双方都确认后配对自动完成并从列表隐藏**
+- **聊天**：匹配双方站内实时沟通（见下节）
+- **我的**：发布历史按 失物/招领 tab + 待匹配/已匹配 状态筛选，支持删除自己的帖子（匹配级联删除）
+
+## 聊天功能（Supabase Realtime）
+
+- **会话即匹配**：`messages` 表以 `match_id` 关联（每个匹配恰好两个参与者，无需 conversations 表）
+- **直连 Supabase**：Flutter 客户端直接读写 + RLS 鉴权（仅匹配双方可见），**FastAPI 后端零改动**
+- **实时推送**：`supabase_realtime` publication 发布 `messages` 表，订阅 `postgres_changes` 实现秒收
+- **入口**：匹配详情页 → "联系对方"按钮；消息气泡带 失物方/招领方 身份标签
 
 ## Supabase 配置（一次性）
 
@@ -118,5 +142,6 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 - **图片上传失败（403 "new row violates row level security policy"）**：桶已创建但 `storage.objects` 缺 RLS 策略，在 SQL Editor 执行一次 `backend/storage_policies.sql`
 - **图片上传失败**：确认 Supabase Storage 已创建 **public** 桶 `images`
 - **列表加载失败"无法连接服务器"**：后端未启动，或 Android 真机需把 `API_BASE_URL` 改为电脑局域网 IP；模拟器用 `10.0.2.2` 指向宿主机
-- **AI 识别提示失败**：后端 `/vision` 尚未实现，属预期降级行为，可手动选择品类/颜色
+- **AI 识别提示失败**：`backend/.env` 未配置 `DEEPSEEK_API_KEY` / `VISION_MODEL`，或模型调用失败；属预期降级行为，可手动选择品类/颜色或点重试
+- **聊天收不到消息 / 接口报表不存在**：新表建好后 PostgREST schema 缓存未刷新，在 SQL Editor 执行 `NOTIFY pgrst, 'reload schema';`
 - **Android 明文 HTTP**：本项目已在 Manifest 开启 `usesCleartextTraffic`，`http://10.0.2.2:8000` 可直接访问
