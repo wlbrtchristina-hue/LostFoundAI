@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/item_model.dart';
 import '../models/match_model.dart';
+import 'chat_page.dart';
 import '../services/api_service.dart';
 import '../services/supabase_service.dart';
 
@@ -163,7 +164,26 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
           bottomNavigationBar: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: FilledButton.icon(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatPage(match: match),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text('联系对方'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
                 onPressed: _confirming || myItem.status == 1 ? null : _confirm,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -179,14 +199,17 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                             ? Icons.check_circle
                             : Icons.check_circle_outline,
                       ),
-                label: Text(
-                  myItem.status == 1
-                      ? '已确认归还 / 认领'
-                      : _confirming
-                          ? '提交中…'
-                          : '确认已归还 / 认领',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                    label: Text(
+                      myItem.status == 1
+                          ? '已确认归还 / 认领'
+                          : _confirming
+                              ? '提交中…'
+                              : '确认已归还 / 认领',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  ),
+                ],
               ),
             ),
           ),

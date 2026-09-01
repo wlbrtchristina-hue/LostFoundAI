@@ -1,6 +1,6 @@
 # 校园失物招领AI助手 — Flutter 前端 + FastAPI 后端
 
-跨平台移动端（Android / iOS）：登录注册 → 拍照发布失物/招领 → AI 一键识别（品类/颜色/数量/品牌/材质/特殊标记/描述）→ 浏览信息流 → 匹配结果 → 确认归还。
+跨平台移动端（Android / iOS）：登录注册 → 拍照发布失物/招领 → AI 一键识别（品类/颜色/数量/品牌/材质/特殊标记/描述）→ 浏览信息流 → 匹配结果 → **匹配双方站内聊天** → 确认归还。
 
 `backend/` 为 FastAPI 后端（本轮已实现，数据层走 Supabase PostgREST + service_role）；若团队分工变化，后端也可由成员B维护。
 
@@ -70,6 +70,8 @@ lib/
 4. **SQL Editor → New query**：粘贴执行 `backend/schema.sql`（创建 `items`/`matches` 表）
 5. **SQL Editor → New query**：再执行一次 `backend/storage_policies.sql`
    （给 `storage.objects` 加 RLS 策略，否则应用内图片上传会 403 "violates row level security policy"）
+6. **SQL Editor → New query**：执行 `backend/chat_schema.sql`（聊天消息表 + RLS + Realtime 发布；
+   聊天直连 Supabase，后端无需改动）
 
 > 后端认证由 Supabase 管理，Flutter 通过 `supabase_flutter` 登录后拿到 JWT；
 > 调用后端 API 时自动附加 `Authorization: Bearer <token>`，后端用 Supabase JWT 验证身份
