@@ -35,7 +35,9 @@ class BrowsePageState extends State<BrowsePage> {
   }
 
   void _reload() {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
   }
 
   /// 供 HomePage 切换 tab 时调用，触发重新加载。

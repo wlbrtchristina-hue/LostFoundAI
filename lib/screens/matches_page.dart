@@ -26,7 +26,9 @@ class MatchesPageState extends State<MatchesPage> {
   }
 
   void _reload() {
-    setState(() => _future = ApiService.instance.getMatches());
+    setState(() {
+      _future = ApiService.instance.getMatches();
+    });
   }
 
   /// 供 HomePage 切换 tab 时调用，触发重新加载。

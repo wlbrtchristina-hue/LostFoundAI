@@ -153,6 +153,7 @@ class _PublishPageState extends State<PublishPage> {
     }
 
     setState(() => _submitting = true);
+    var published = false;
     try {
       await ApiService.instance.postItem(
         type: _type,
@@ -166,6 +167,7 @@ class _PublishPageState extends State<PublishPage> {
         specialMark: _specialMarkController.text.trim(),
         quantity: int.tryParse(_quantityController.text.trim()) ?? 1,
       );
+      published = true;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -174,8 +176,6 @@ class _PublishPageState extends State<PublishPage> {
         ),
       );
       _resetForm();
-      // 跳到浏览 tab，新物品立即可见
-      widget.onPublished?.call();
     } on ApiException catch (e) {
       _showSnack('发布失败：${e.message}');
     } catch (e) {
@@ -183,6 +183,8 @@ class _PublishPageState extends State<PublishPage> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+    // 跳转到浏览 tab（放在请求异常处理之外，UI 动作的错误不会误报"发布失败"）
+    if (published && mounted) widget.onPublished?.call();
   }
 
   void _resetForm() {
