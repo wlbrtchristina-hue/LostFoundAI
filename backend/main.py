@@ -149,11 +149,12 @@ def list_items(
     type: int | None = Query(default=None, ge=0, le=1),
     category: str | None = None,
     user_id: str | None = None,
+    status: int | None = Query(default=None, ge=0, le=1, description="0=待匹配 1=已匹配"),
     auth_user: str = Depends(get_current_user),
 ):
     if user_id == "me":
         user_id = auth_user
-    rows = db.list_items(type=type, category=category, user_id=user_id)
+    rows = db.list_items(type=type, category=category, user_id=user_id, status=status)
     return {"items": [item_to_dict(r) for r in rows]}
 
 
@@ -192,12 +193,14 @@ def list_my_matches(user_id: str = Depends(get_current_user)):
     item_map = db.items_by_ids(
         list({m["lost_item_id"] for m in matches} | {m["found_item_id"] for m in matches})
     )
-    return {
-        "matches": [
-            match_to_dict(m, item_map[m["lost_item_id"]], item_map[m["found_item_id"]])
-            for m in matches
-        ]
-    }
+    # 防御：物品已被删除的匹配直接跳过（正常级联删除不会出现）
+    resolved = []
+    for m in matches:
+        lost, found = item_map.get(m["lost_item_id"]), item_map.get(m["found_item_id"])
+        if lost is None or found is None:
+            continue
+        resolved.append(match_to_dict(m, lost, found))
+    return {"matches": resolved}
 
 
 @app.get("/matches/{match_id}")

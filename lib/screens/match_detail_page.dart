@@ -79,23 +79,29 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('匹配详情')),
-      body: FutureBuilder<MatchModel>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('加载失败：${snapshot.error}'));
-          }
-          final match = snapshot.data!;
-          final userId = SupabaseService.instance.currentUserId;
-          final myItem = match.itemOf(userId);
-          final counterpart = match.counterpartOf(userId);
+    // FutureBuilder 提升到 Scaffold 外层：bottomNavigationBar 需要 myItem 状态
+    return FutureBuilder<MatchModel>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('匹配详情')),
+            body: Center(child: Text('加载失败：${snapshot.error}')),
+          );
+        }
+        final match = snapshot.data!;
+        final userId = SupabaseService.instance.currentUserId;
+        final myItem = match.itemOf(userId);
+        final counterpart = match.counterpartOf(userId);
 
-          return Column(
+        return Scaffold(
+          appBar: AppBar(title: const Text('匹配详情')),
+          body: Column(
             children: [
               // 顶部匹配度
               Container(
@@ -120,6 +126,24 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                             fontWeight: FontWeight.bold,
                           ),
                     ),
+                    if (match.isResolved) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '已完成',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(color: Colors.green.shade900),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -135,31 +159,39 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                 ),
               ),
             ],
-          );
-        },
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton.icon(
-            onPressed: _confirming ? null : _confirm,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: _confirming
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check_circle_outline),
-            label: Text(
-              _confirming ? '提交中…' : '确认已归还 / 认领',
-              style: const TextStyle(fontSize: 16),
+          ),
+          bottomNavigationBar: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: FilledButton.icon(
+                onPressed: _confirming || myItem.status == 1 ? null : _confirm,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: _confirming
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        myItem.status == 1
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                      ),
+                label: Text(
+                  myItem.status == 1
+                      ? '已确认归还 / 认领'
+                      : _confirming
+                          ? '提交中…'
+                          : '确认已归还 / 认领',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

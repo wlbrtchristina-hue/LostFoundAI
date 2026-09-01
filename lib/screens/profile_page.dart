@@ -19,13 +19,15 @@ class _ProfilePageState extends State<ProfilePage>
   late final TabController _tabController;
   late Future<List<ItemModel>> _lostFuture;
   late Future<List<ItemModel>> _foundFuture;
+  int? _lostStatus; // null=全部（状态筛选）
+  int? _foundStatus;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _lostFuture = _load(ItemType.lost);
-    _foundFuture = _load(ItemType.found);
+    _lostFuture = _load(ItemType.lost, _lostStatus);
+    _foundFuture = _load(ItemType.found, _foundStatus);
   }
 
   @override
@@ -34,15 +36,53 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  Future<List<ItemModel>> _load(int type) {
-    return ApiService.instance.getItems(userId: 'me', type: type);
+  Future<List<ItemModel>> _load(int type, int? status) {
+    return ApiService.instance.getItems(userId: 'me', type: type, status: status);
   }
 
   void _reload() {
     setState(() {
-      _lostFuture = _load(ItemType.lost);
-      _foundFuture = _load(ItemType.found);
+      _lostFuture = _load(ItemType.lost, _lostStatus);
+      _foundFuture = _load(ItemType.found, _foundStatus);
     });
+  }
+
+  void _setStatusFilter(int type, int? status) {
+    setState(() {
+      if (type == ItemType.lost) {
+        _lostStatus = status;
+        _lostFuture = _load(type, status);
+      } else {
+        _foundStatus = status;
+        _foundFuture = _load(type, status);
+      }
+    });
+  }
+
+  /// 状态筛选栏：全部 / 待匹配 / 已匹配
+  Widget _buildStatusFilter(int type) {
+    final current = type == ItemType.lost ? _lostStatus : _foundStatus;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
+        children: [
+          _statusChip(type, '全部', null, current),
+          const SizedBox(width: 8),
+          _statusChip(type, '待匹配', ItemStatus.pending, current),
+          const SizedBox(width: 8),
+          _statusChip(type, '已匹配', ItemStatus.matched, current),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(int type, String label, int? value, int? current) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: current == value,
+      visualDensity: VisualDensity.compact,
+      onSelected: (_) => _setStatusFilter(type, value),
+    );
   }
 
   Future<void> _confirmDelete(ItemModel item) async {
@@ -134,8 +174,8 @@ class _ProfilePageState extends State<ProfilePage>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildTab(_lostFuture),
-              _buildTab(_foundFuture),
+              _buildTab(_lostFuture, type: ItemType.lost),
+              _buildTab(_foundFuture, type: ItemType.found),
             ],
           ),
         ),
@@ -143,7 +183,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildTab(Future<List<ItemModel>> future) {
+  Widget _buildTab(Future<List<ItemModel>> future, {required int type}) {
     return FutureBuilder<List<ItemModel>>(
       future: future,
       builder: (context, snapshot) {
@@ -172,24 +212,30 @@ class _ProfilePageState extends State<ProfilePage>
           );
         }
         final items = snapshot.data ?? [];
-        if (items.isEmpty) {
-          return const Center(child: Text('这里还空空的，去发布一条吧'));
-        }
-        return RefreshIndicator(
-          onRefresh: () async => _reload(),
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(12),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ItemCard(
-                item: item,
-                showStatus: true,
-                onDelete: () => _confirmDelete(item),
-              );
-            },
-          ),
+        return Column(
+          children: [
+            _buildStatusFilter(type),
+            Expanded(
+              child: items.isEmpty
+                  ? const Center(child: Text('这里还空空的，去发布一条吧'))
+                  : RefreshIndicator(
+                      onRefresh: () async => _reload(),
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(12),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return ItemCard(
+                            item: item,
+                            showStatus: true,
+                            onDelete: () => _confirmDelete(item),
+                          );
+                        },
+                      ),
+                    ),
+              ),
+          ],
         );
       },
     );

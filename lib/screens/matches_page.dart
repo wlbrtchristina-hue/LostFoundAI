@@ -16,8 +16,16 @@ class MatchesPage extends StatefulWidget {
 }
 
 /// 公开 State 供 HomePage 切 tab 时通过 GlobalKey 刷新。
+/// 匹配列表筛选：0=全部 1=未确认 2=已完成
+const _kMatchFilters = [
+  (label: '全部', value: 0),
+  (label: '未确认', value: 1),
+  (label: '已完成', value: 2),
+];
+
 class MatchesPageState extends State<MatchesPage> {
   late Future<List<MatchModel>> _future;
+  int _filter = 0;
 
   @override
   void initState() {
@@ -36,41 +44,70 @@ class MatchesPageState extends State<MatchesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<MatchModel>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return _buildError(snapshot.error.toString());
-        }
-        final matches = snapshot.data ?? [];
-        // 双方都已确认的配对视为"已完成"，从列表隐藏
-        final active = matches.where((m) => !m.isResolved).toList();
-        if (active.isEmpty) {
-          return Center(
-            child: Text(
-              matches.isEmpty
-                  ? '暂无匹配结果，发布物品后会在这里看到配对'
-                  : '所有匹配都已完成 🎉',
-              style: const TextStyle(fontSize: 15),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: SegmentedButton<int>(
+            segments: [
+              for (final f in _kMatchFilters)
+                ButtonSegment(value: f.value, label: Text(f.label)),
+            ],
+            selected: {_filter},
+            showSelectedIcon: false,
+            style: const ButtonStyle(
+              visualDensity: VisualDensity.compact,
             ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async => _reload(),
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(12),
-            itemCount: active.length,
-            itemBuilder: (context, index) {
-              final match = active[index];
-              return _buildMatchCard(match);
+            onSelectionChanged: (s) => setState(() => _filter = s.first),
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<MatchModel>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return _buildError(snapshot.error.toString());
+              }
+              final matches = snapshot.data ?? [];
+              // 已完成 = 双方都已确认；按当前筛选选择展示集合
+              final shown = switch (_filter) {
+                1 => matches.where((m) => !m.isResolved).toList(),
+                2 => matches.where((m) => m.isResolved).toList(),
+                _ => matches,
+              };
+              if (shown.isEmpty) {
+                return Center(
+                  child: Text(
+                    matches.isEmpty
+                        ? '暂无匹配结果，发布物品后会在这里看到配对'
+                        : _filter == 1
+                            ? '所有匹配都已完成 🎉'
+                            : _filter == 2
+                                ? '还没有已完成的匹配'
+                                : '暂无匹配结果',
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                );
+              }
+              return RefreshIndicator(
+                onRefresh: () async => _reload(),
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(12),
+                  itemCount: shown.length,
+                  itemBuilder: (context, index) {
+                    final match = shown[index];
+                    return _buildMatchCard(match);
+                  },
+                ),
+              );
             },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -137,6 +174,21 @@ class MatchesPageState extends State<MatchesPage> {
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
+            if (match.isResolved)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '已完成',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
           ],
         ),
         subtitle: Column(

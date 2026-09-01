@@ -120,11 +120,12 @@ class ApiService {
     return ItemModel.fromJson(_pickMap(data, ['item', 'data']) ?? {});
   }
 
-  /// 获取物品列表（支持按类型 / 品类 / 用户筛选）。
+  /// 获取物品列表（支持按类型 / 品类 / 用户 / 状态筛选）。
   Future<List<ItemModel>> getItems({
     int? type,
     String? category,
     String? userId,
+    int? status,
   }) async {
     final data = await _request(
       () => _dio.get(
@@ -133,6 +134,7 @@ class ApiService {
           if (type != null) 'type': type,
           if (category != null && category.isNotEmpty) 'category': category,
           if (userId != null && userId.isNotEmpty) 'user_id': userId,
+          if (status != null) 'status': status,
         },
       ),
     );
