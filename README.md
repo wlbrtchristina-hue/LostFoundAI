@@ -68,6 +68,8 @@ lib/
 3. **Settings → API**：复制 Project URL 和 anon public key 到 `.env`；
    复制 service_role secret 到 `backend/.env` 的 `SERVICE_ROLE_KEY`
 4. **SQL Editor → New query**：粘贴执行 `backend/schema.sql`（创建 `items`/`matches` 表）
+5. **SQL Editor → New query**：再执行一次 `backend/storage_policies.sql`
+   （给 `storage.objects` 加 RLS 策略，否则应用内图片上传会 403 "violates row level security policy"）
 
 > 后端认证由 Supabase 管理，Flutter 通过 `supabase_flutter` 登录后拿到 JWT；
 > 调用后端 API 时自动附加 `Authorization: Bearer <token>`，后端用 Supabase JWT 验证身份
@@ -91,9 +93,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 | 方法 | 路径 | 请求体 / 参数 | 成功响应 |
 |------|------|--------------|----------|
 | POST | `/items` | `{type: 0\|1, category, color, location, description, image_url, brand?, material?, special_mark?, quantity?}` | `{item: {...}}` |
-| GET | `/items` | 可选 `type`、`category`、`user_id`（`me`=当前用户） | `{items: [...]}` |
+| GET | `/items` | 可选 `type`、`category`、`user_id`（`me`=当前用户）、`status`（0=待匹配 1=已匹配） | `{items: [...]}` |
+| DELETE | `/items/{id}` | —（仅物品发布者可删） | `{deleted: true}`（关联匹配级联删除） |
 | PATCH | `/items/{id}/status` | `{status: 1}` | `{item: {...}}` |
-| GET | `/matches/me` | — | `{matches: [...]}` |
+| GET | `/matches/me` | — | `{matches: [...]}`（物品已删除的匹配自动跳过） |
 | GET | `/matches/{id}` | — | `{match: {...}}`（查看即把请求方一侧 seen 置 true） |
 | POST | `/vision` | `{image_url}` | `{category, color, quantity, brand, material, special_mark, description}` |
 
