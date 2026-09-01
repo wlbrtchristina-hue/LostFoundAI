@@ -11,10 +11,11 @@ class BrowsePage extends StatefulWidget {
   const BrowsePage({super.key});
 
   @override
-  State<BrowsePage> createState() => _BrowsePageState();
+  State<BrowsePage> createState() => BrowsePageState();
 }
 
-class _BrowsePageState extends State<BrowsePage> {
+/// 公开 State 供 HomePage 切 tab 时通过 GlobalKey 刷新。
+class BrowsePageState extends State<BrowsePage> {
   int? _filterType; // null=全部
   String? _filterCategory; // null=全部品类
 
@@ -36,6 +37,9 @@ class _BrowsePageState extends State<BrowsePage> {
   void _reload() {
     setState(() => _future = _load());
   }
+
+  /// 供 HomePage 切换 tab 时调用，触发重新加载。
+  void reload() => _reload();
 
   @override
   Widget build(BuildContext context) {

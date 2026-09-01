@@ -12,10 +12,11 @@ class MatchesPage extends StatefulWidget {
   const MatchesPage({super.key});
 
   @override
-  State<MatchesPage> createState() => _MatchesPageState();
+  State<MatchesPage> createState() => MatchesPageState();
 }
 
-class _MatchesPageState extends State<MatchesPage> {
+/// 公开 State 供 HomePage 切 tab 时通过 GlobalKey 刷新。
+class MatchesPageState extends State<MatchesPage> {
   late Future<List<MatchModel>> _future;
 
   @override
@@ -27,6 +28,9 @@ class _MatchesPageState extends State<MatchesPage> {
   void _reload() {
     setState(() => _future = ApiService.instance.getMatches());
   }
+
+  /// 供 HomePage 切换 tab 时调用，触发重新加载。
+  void reload() => _reload();
 
   @override
   Widget build(BuildContext context) {

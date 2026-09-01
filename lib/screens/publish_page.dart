@@ -11,7 +11,10 @@ import '../utils/image_picker_helper.dart';
 /// → 结果作为可编辑草稿供用户校对 → 提交。
 /// AI 识别失败时降级为纯手动填写，主流程不中断。
 class PublishPage extends StatefulWidget {
-  const PublishPage({super.key});
+  const PublishPage({super.key, this.onPublished});
+
+  /// 发布成功后回调（HomePage 用它跳到浏览 tab 展示新物品）。
+  final VoidCallback? onPublished;
 
   @override
   State<PublishPage> createState() => _PublishPageState();
@@ -171,6 +174,8 @@ class _PublishPageState extends State<PublishPage> {
         ),
       );
       _resetForm();
+      // 跳到浏览 tab，新物品立即可见
+      widget.onPublished?.call();
     } on ApiException catch (e) {
       _showSnack('发布失败：${e.message}');
     } catch (e) {

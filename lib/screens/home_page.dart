@@ -20,12 +20,16 @@ class _HomePageState extends State<HomePage> {
 
   static const _titles = ['发布', '浏览', '匹配', '我的'];
 
+  // IndexedStack 下各页常驻，切 tab 时手动触发刷新（否则看到旧数据）
+  final _browseKey = GlobalKey<BrowsePageState>();
+  final _matchesKey = GlobalKey<MatchesPageState>();
+
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const PublishPage(),
-      const BrowsePage(),
-      const MatchesPage(),
+      PublishPage(onPublished: _goBrowse),
+      BrowsePage(key: _browseKey),
+      MatchesPage(key: _matchesKey),
       const ProfilePage(),
     ];
 
@@ -48,8 +52,12 @@ class _HomePageState extends State<HomePage> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _currentIndex = index),
+        onDestinationSelected: (index) {
+          setState(() => _currentIndex = index);
+          // 切到浏览/匹配时刷新（发布后立即可见新物品和匹配）
+          if (index == 1) _browseKey.currentState?.reload();
+          if (index == 2) _matchesKey.currentState?.reload();
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.add_circle_outline),
@@ -74,6 +82,12 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  /// 发布成功后跳到浏览 tab（列表已由 onDestinationSelected 刷新）。
+  void _goBrowse() {
+    setState(() => _currentIndex = 1);
+    _browseKey.currentState?.reload();
   }
 
   Future<void> _logout() async {
