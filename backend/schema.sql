@@ -51,19 +51,25 @@ grant all on all functions in schema public to anon, authenticated, service_role
 alter table public.items enable row level security;
 alter table public.matches enable row level security;
 
+drop policy if exists items_select on public.items;
 create policy items_select on public.items
   for select using (true);
+drop policy if exists items_insert on public.items;
 create policy items_insert on public.items
   for insert with check (auth.uid() = user_id);
+drop policy if exists items_update on public.items;
 create policy items_update on public.items
   for update using (auth.uid() = user_id);
 
+drop policy if exists matches_select on public.matches;
 create policy matches_select on public.matches
   for select using (
     exists (select 1 from public.items i where i.id = lost_item_id and i.user_id = auth.uid())
     or exists (select 1 from public.items i where i.id = found_item_id and i.user_id = auth.uid())
   );
+drop policy if exists matches_insert on public.matches;
 create policy matches_insert on public.matches
   for insert with check (true);
+drop policy if exists matches_update on public.matches;
 create policy matches_update on public.matches
   for update using (true);
